@@ -1,42 +1,31 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Jigsaw Puzzle Game</title>
-  <link rel="stylesheet" href="styles.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jigsaw Puzzle Game</title>
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <!-- Start Screen -->
-  <div id="start-screen" class="screen active">
-    <h1>Jigsaw Puzzle Game</h1>
-    <p>Select an image to start playing!</p>
-    <div class="image-grid">
-      <img src="image1.jpg" alt="Image 1" onclick="startGame('image1.jpg')" />
-      <img src="image2.jpg" alt="Image 2" onclick="startGame('image2.jpg')" />
-      <img src="image3.jpg" alt="Image 3" onclick="startGame('image3.jpg')" />
-      <img src="image4.jpg" alt="Image 4" onclick="startGame('image4.jpg')" />
-      <img src="image5.jpg" alt="Image 5" onclick="startGame('image5.jpg')" />
+    <div id="selection-screen">
+        <h1>Select an Image</h1>
+        <div class="image-selection">
+            <img src="image1.jpg" alt="Image 1" onclick="startGame(this)">
+            <img src="image2.jpg" alt="Image 2" onclick="startGame(this)">
+            <img src="image3.jpg" alt="Image 3" onclick="startGame(this)">
+            <img src="image4.jpg" alt="Image 4" onclick="startGame(this)">
+            <img src="image5.jpg" alt="Image 5" onclick="startGame(this)">
+        </div>
     </div>
-  </div>
-
-  <!-- Game Screen -->
-  <div id="game-screen" class="screen">
-    <header>
-      <span id="timer">Time: 0s</span>
-      <button onclick="restartGame()">Restart</button>
-    </header>
-    <div id="puzzle-container"></div>
-  </div>
-
-  <!-- End Screen -->
-  <div id="end-screen" class="screen">
-    <h1>Congratulations!</h1>
-    <p>You completed the puzzle in <span id="final-time"></span> seconds.</p>
-    <button onclick="shareResult()">Share</button>
-    <button onclick="playAgain()">Play Again</button>
-  </div>
-
-  <script src="script.js"></script>
+    <div id="game-screen" style="display: none;">
+        <div id="timer">Time: 0s</div>
+        <div id="puzzle-container"></div>
+    </div>
+    <div id="completion-screen" style="display: none;">
+        <h1>Puzzle Completed!</h1>
+        <p id="completion-time">Time Taken: 0s</p>
+        <button onclick="shareResult()">Share</button>
+    </div>
+    <script src="script.js"></script>
 </body>
 </html>
