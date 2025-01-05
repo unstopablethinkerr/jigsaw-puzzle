@@ -1,4 +1,5 @@
- let timer;
+
+let timer;
 let timeElapsed = 0;
 let gridSize = 3; // Change this for difficulty (e.g., 3 = 3x3 grid)
 let pieces = [];
@@ -41,7 +42,7 @@ function initializePuzzle(imageSrc) {
       piece.dataset.col = col;
 
       // Add click event
-      piece.addEventListener("click", () => movePiece(row, col));
+      piece.addEventListener("click", () => movePiece(piece));
 
       pieces.push(piece);
     }
@@ -70,10 +71,12 @@ function renderPieces(container) {
   container.appendChild(emptyPiece); // Add the empty slot
 }
 
-function movePiece(row, col) {
+function movePiece(piece) {
   // Find the empty piece's position
   const emptyRow = parseInt(emptyPiece.dataset.row);
   const emptyCol = parseInt(emptyPiece.dataset.col);
+  const row = parseInt(piece.dataset.row);
+  const col = parseInt(piece.dataset.col);
 
   // Check if the clicked piece is adjacent to the empty slot
   if (
@@ -81,7 +84,7 @@ function movePiece(row, col) {
     (col === emptyCol && Math.abs(row - emptyRow) === 1)
   ) {
     // Swap positions
-    swapPieces(row, col, emptyRow, emptyCol);
+    swapPieces(piece, emptyPiece);
     if (isPuzzleSolved()) {
       stopTimer();
       showCompletionScreen();
@@ -89,11 +92,7 @@ function movePiece(row, col) {
   }
 }
 
-function swapPieces(row, col, emptyRow, emptyCol) {
-  const piece = pieces.find(
-    (p) => p.dataset.row == row && p.dataset.col == col
-  );
-
+function swapPieces(piece, emptyPiece) {
   // Swap visual positions
   [piece.dataset.row, emptyPiece.dataset.row] = [
     emptyPiece.dataset.row,
