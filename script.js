@@ -1,4 +1,4 @@
-document.addEventListener('DOMContentLoaded', () => {
+ document.addEventListener('DOMContentLoaded', () => {
     const selectionScreen = document.getElementById('selection-screen');
     const gameScreen = document.getElementById('game-screen');
     const completionScreen = document.getElementById('completion-screen');
@@ -12,13 +12,16 @@ document.addEventListener('DOMContentLoaded', () => {
     let puzzlePieces = [];
     const gridSize = 4; // 4x4 grid
 
-    // Initialize image selection
-    document.querySelectorAll('.image-selection button').forEach(button => {
-        button.addEventListener('click', () => {
-            selectedImage = button.querySelector('img').src;
-            startGame();
+    function setupEventListeners() {
+        document.querySelectorAll('.image-selection button').forEach(button => {
+            button.addEventListener('click', () => {
+                selectedImage = button.querySelector('img').src;
+                startGame();
+            });
         });
-    });
+
+        document.getElementById('share-button').addEventListener('click', shareResult);
+    }
 
     function startGame() {
         selectionScreen.hidden = true;
@@ -59,6 +62,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     piece.dataset.row = row;
                     piece.dataset.col = col;
                     piece.draggable = true;
+                    piece.setAttribute('role', 'button');
+                    piece.setAttribute('aria-label', `Puzzle piece at row ${row}, column ${col}`);
                     piece.addEventListener('dragstart', dragStart);
                     piece.addEventListener('dragover', dragOver);
                     piece.addEventListener('drop', drop);
@@ -69,7 +74,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Shuffle and display pieces
             shufflePieces();
-            puzzlePieces.forEach(piece => puzzleContainer.appendChild(piece));
+            requestAnimationFrame(() => {
+                puzzlePieces.forEach(piece => puzzleContainer.appendChild(piece));
+            });
+        };
+        img.onerror = () => {
+            alert('Failed to load the image. Please try again.');
         };
     }
 
@@ -134,8 +144,6 @@ document.addEventListener('DOMContentLoaded', () => {
         completionTimeDisplay.textContent = `Time Taken: ${elapsedTime}s`;
     }
 
-    document.getElementById('share-button').addEventListener('click', shareResult);
-
     function shareResult() {
         const elapsedTime = completionTimeDisplay.textContent;
         const shareText = `I completed the puzzle in ${elapsedTime}!`;
@@ -149,4 +157,6 @@ document.addEventListener('DOMContentLoaded', () => {
             alert('Share feature is not supported in your browser.');
         }
     }
+
+    setupEventListeners();
 });
