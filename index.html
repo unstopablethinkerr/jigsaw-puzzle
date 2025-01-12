@@ -7,44 +7,9 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <header>
-        <h1>Jigsaw Puzzle Game</h1>
-    </header>
-    <main>
-        <section id="selection-screen" aria-labelledby="selection-heading">
-            <h2 id="selection-heading">Select an Image</h2>
-            <div class="image-selection" role="list">
-                <button role="listitem" aria-label="Select Image 1" onclick="startGame('image1.jpg')">
-                    <img src="image1.jpg" alt="Image 1">
-                </button>
-                <button role="listitem" aria-label="Select Image 2" onclick="startGame('image2.jpg')">
-                    <img src="image2.jpg" alt="Image 2">
-                </button>
-                <button role="listitem" aria-label="Select Image 3" onclick="startGame('image3.jpg')">
-                    <img src="image3.jpg" alt="Image 3">
-                </button>
-                <button role="listitem" aria-label="Select Image 4" onclick="startGame('image4.jpg')">
-                    <img src="image4.jpg" alt="Image 4">
-                </button>
-                <button role="listitem" aria-label="Select Image 5" onclick="startGame('image5.jpg')">
-                    <img src="image5.jpg" alt="Image 5">
-                </button>
-            </div>
-        </section>
-        <section id="game-screen" aria-labelledby="game-heading" hidden>
-            <h2 id="game-heading">Puzzle Game</h2>
-            <div id="timer" aria-live="polite">Time: 0s</div>
-            <div id="puzzle-container" role="grid" aria-label="Puzzle pieces"></div>
-        </section>
-        <section id="completion-screen" aria-labelledby="completion-heading" hidden>
-            <h2 id="completion-heading">Puzzle Completed!</h2>
-            <p id="completion-time">Time Taken: 0s</p>
-            <button onclick="shareResult()">Share</button>
-        </section>
-    </main>
-    <footer>
-        <p>&copy; 2025 Jigsaw Puzzle Game. All rights reserved.</p>
-    </footer>
-    <script src="script.js" defer></script>
+    <h1>CSS Puzzle</h1>
+    <p>Drag & drop the pieces into the correct positions.</p>
+    <div id="puzzle-container"></div>
+    <script src="script.js"></script>
 </body>
 </html>
