@@ -1,15 +1,799 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Jigsaw Puzzle Game</title>
-    <link rel="stylesheet" href="styles.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🧩 Magnet Jigsaw</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    min-height: 100vh;
+    padding: 20px;
+    color: #2d2b55;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 25%, #f093fb 50%, #4facfe 75%, #00f2fe 100%);
+    background-size: 400% 400%;
+    animation: shift 16s ease infinite;
+  }
+  @keyframes shift {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+
+  .app { max-width: 1100px; margin: 0 auto; }
+
+  header { text-align: center; color: #fff; margin-bottom: 24px; text-shadow: 2px 2px 8px rgba(0,0,0,.3); }
+  header h1 { font-size: 2.8em; }
+  header p { opacity: .95; }
+
+  .screen { display: none; }
+  .screen.active { display: block; }
+  .hidden { display: none !important; }
+
+  .card {
+    background: #fff; border-radius: 20px; padding: 22px;
+    box-shadow: 0 10px 40px rgba(0,0,0,.2);
+  }
+  .card h2 { color: #667eea; margin-bottom: 14px; font-size: 1.4em; }
+
+  /* ---------- MENU ---------- */
+  .menu-grid { display: grid; grid-template-columns: 1.2fr 1fr; gap: 20px; }
+
+  .thumbs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .thumb {
+    border-radius: 14px; overflow: hidden; cursor: pointer;
+    border: 4px solid transparent; transition: transform .2s, border-color .2s;
+    background: #f4f4ff;
+  }
+  .thumb:hover { transform: scale(1.04); }
+  .thumb.active { border-color: #f093fb; box-shadow: 0 0 18px rgba(240,147,251,.7); }
+  .thumb img { width: 100%; aspect-ratio: 1; object-fit: cover; display: block; }
+  .thumb span {
+    display: block; text-align: center; padding: 6px; font-weight: 700; color: #fff;
+    background: linear-gradient(135deg, #667eea, #764ba2); font-size: .9em;
+  }
+
+  .upload-btn {
+    display: block; margin-top: 16px; padding: 14px; text-align: center; cursor: pointer;
+    border-radius: 14px; color: #fff; font-weight: 700;
+    background: linear-gradient(135deg, #f093fb, #f5576c);
+    transition: transform .2s;
+  }
+  .upload-btn:hover { transform: translateY(-2px); }
+
+  .size-row { display: flex; align-items: center; gap: 14px; }
+  .size-row input[type=range] {
+    flex: 1; -webkit-appearance: none; height: 10px; border-radius: 10px; outline: none;
+    background: linear-gradient(90deg, #667eea, #f093fb, #f5576c);
+  }
+  .size-row input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 26px; height: 26px; border-radius: 50%; cursor: pointer;
+    background: #fff; border: 4px solid #f5576c; box-shadow: 0 3px 10px rgba(0,0,0,.2);
+  }
+  .size-label { min-width: 80px; text-align: center; font-size: 1.4em; font-weight: 800; color: #f5576c; }
+
+  .preview-frame {
+    width: 100%; max-width: 320px; aspect-ratio: 1; margin: 18px auto 8px;
+    border-radius: 14px; background: #eee; box-shadow: 0 6px 20px rgba(0,0,0,.2);
+  }
+  .info { text-align: center; color: #667eea; font-weight: 700; }
+
+  .big-btn {
+    width: 100%; margin-top: 16px; padding: 16px; border: none; border-radius: 14px; cursor: pointer;
+    color: #fff; font-size: 1.1em; font-weight: 800; letter-spacing: 1px;
+    background: linear-gradient(135deg, #667eea, #764ba2); transition: transform .2s, box-shadow .2s;
+  }
+  .big-btn:hover:not(:disabled) { transform: translateY(-3px); box-shadow: 0 10px 28px rgba(102,126,234,.45); }
+  .big-btn:disabled { opacity: .5; cursor: not-allowed; }
+
+  /* ---------- GAME ---------- */
+  .game-top {
+    display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;
+    gap: 12px; margin-bottom: 16px;
+  }
+  .stats { display: flex; gap: 10px; flex-wrap: wrap; }
+  .stat {
+    color: #fff; padding: 8px 14px; border-radius: 12px; min-width: 96px; text-align: center;
+    background: linear-gradient(135deg, #667eea, #764ba2); box-shadow: 0 5px 14px rgba(102,126,234,.35);
+  }
+  .stat span { display: block; font-size: .75em; opacity: .9; }
+  .stat b { font-size: 1.35em; }
+
+  .btns { display: flex; gap: 8px; flex-wrap: wrap; }
+  .ghost {
+    padding: 10px 14px; border: none; border-radius: 12px; cursor: pointer; font-weight: 700;
+    color: #fff; background: linear-gradient(135deg, #f093fb, #f5576c); transition: transform .15s;
+  }
+  .ghost:hover { transform: translateY(-2px); }
+
+  .game-body { display: grid; grid-template-columns: minmax(0, 1fr) 240px; gap: 20px; align-items: start; }
+  .board-wrap { display: flex; justify-content: center; }
+
+  .board {
+    position: relative; width: min(100%, 680px); aspect-ratio: 1; overflow: hidden;
+    border-radius: 20px; border: 3px dashed #8a7ff0;
+    background-color: #fbfbff;
+    background-image: radial-gradient(#d9dcff 1.5px, transparent 1.5px);
+    background-size: 24px 24px;
+  }
+  .board::after {
+    content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 99999;
+    background: var(--img) center / cover no-repeat; opacity: 0; transition: opacity .2s;
+  }
+  .board.peek::after { opacity: .4; }
+
+  .piece {
+    position: absolute; left: 0; top: 0; cursor: grab; touch-action: none; user-select: none;
+    background-color: #fff; background-image: var(--img); background-repeat: no-repeat;
+    background-origin: border-box; border-radius: 10px;
+    box-shadow: 0 0 0 2px #fff, 0 6px 14px rgba(40,30,90,.35);
+    will-change: transform;
+  }
+  .piece.joined { border-radius: 0; box-shadow: none; }
+  .piece.magnet {
+    box-shadow: 0 0 0 3px #ffd32a, 0 0 22px 6px rgba(255,211,42,.85);
+  }
+  .piece.glide { transition: transform .25s ease-out; }
+  .piece.snap { animation: snapPop .45s ease; }
+  @keyframes snapPop {
+    0% { filter: brightness(1.35); }
+    100% { filter: none; }
+  }
+
+  /* numbered magnet IDs (shown with the toggle) */
+  .idtag {
+    display: none; position: absolute; z-index: 2; pointer-events: none;
+    font-size: 11px; font-weight: 800; padding: 0 5px; border-radius: 6px;
+    background: #fff; color: #2d2b55; box-shadow: 0 1px 4px rgba(0,0,0,.3);
+    transform: translate(-50%, -50%);
+  }
+  .idtag.t { left: 50%; top: 0; }
+  .idtag.b { left: 50%; top: 100%; }
+  .idtag.l { left: 0; top: 50%; }
+  .idtag.r { left: 100%; top: 50%; }
+  .board.show-ids .idtag { display: block; }
+
+  .win {
+    position: absolute; inset: 0; z-index: 100000; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; text-align: center; color: #fff; padding: 20px;
+    background: rgba(102,126,234,.93); overflow: hidden;
+  }
+  .win h2 { font-size: 2.4em; margin-bottom: 10px; }
+  .win p { font-size: 1.15em; margin-bottom: 18px; }
+  .win-btns { display: flex; gap: 10px; position: relative; z-index: 1; }
+  .confetti {
+    position: absolute; top: -20px; width: 10px; height: 14px; border-radius: 2px;
+    animation: fall 2.6s linear infinite;
+  }
+  @keyframes fall {
+    from { transform: translateY(0) rotate(0deg); }
+    to { transform: translateY(720px) rotate(720deg); }
+  }
+
+  .side { display: flex; flex-direction: column; gap: 14px; }
+  .preview-card { background: #fff; border-radius: 18px; padding: 14px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,.2); }
+  .preview-card h3 { color: #667eea; font-size: .95em; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
+  .preview-card img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 12px; display: block; }
+  .toggle {
+    background: #fff; border-radius: 14px; padding: 12px; font-weight: 700; color: #667eea;
+    display: flex; align-items: center; gap: 8px; cursor: pointer;
+  }
+  .tip {
+    background: rgba(255,255,255,.92); border-radius: 14px; padding: 12px;
+    font-size: .9em; line-height: 1.45; color: #4a4670;
+  }
+
+  @media (max-width: 860px) {
+    .menu-grid, .game-body { grid-template-columns: 1fr; }
+    header h1 { font-size: 2.2em; }
+  }
+</style>
 </head>
 <body>
-    <h1>CSS Puzzle</h1>
-    <p>Drag & drop the pieces into the correct positions.</p>
-    <div id="puzzle-container"></div>
-    <script src="script.js"></script>
+<div class="app">
+  <header>
+    <h1>🧩 Magnet Jigsaw</h1>
+    <p>Drag pieces next to their match. When the magnet IDs line up, they lock together!</p>
+  </header>
+
+  <!-- MENU -->
+  <section id="menu" class="screen active">
+    <div class="menu-grid">
+      <div class="card">
+        <h2>1️⃣ Pick a picture</h2>
+        <div id="thumbs" class="thumbs"></div>
+        <label class="upload-btn">
+          <span id="uploadText">📤 Upload your own photo</span>
+          <input type="file" id="fileInput" accept="image/*" hidden>
+        </label>
+      </div>
+
+      <div class="card">
+        <h2>2️⃣ Choose puzzle size</h2>
+        <div class="size-row">
+          <input type="range" id="sizeSlider" min="3" max="10" value="4">
+          <span id="sizeLabel" class="size-label">4 × 4</span>
+        </div>
+        <div id="menuPreview" class="preview-frame"></div>
+        <p id="menuInfo" class="info"></p>
+        <button id="startBtn" class="big-btn">🎮 Start Game</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- GAME -->
+  <section id="game" class="screen">
+    <div class="game-top">
+      <div class="stats">
+        <div class="stat"><span>⏱ Time</span><b id="timer">0:00</b></div>
+        <div class="stat"><span>🎯 Moves</span><b id="moves">0</b></div>
+        <div class="stat"><span>🧲 Largest group</span><b id="connected">0/0</b></div>
+      </div>
+      <div class="btns">
+        <button id="peekBtn" class="ghost">👁 Hold to peek</button>
+        <button id="scatterBtn" class="ghost">🔀 Scatter loose</button>
+        <button id="restartBtn" class="ghost">🆕 New shuffle</button>
+        <button id="menuBtn" class="ghost">← Menu</button>
+      </div>
+    </div>
+
+    <div class="game-body">
+      <div class="board-wrap">
+        <div id="board" class="board">
+          <div id="win" class="win hidden">
+            <h2>🎉 Puzzle solved!</h2>
+            <p id="winText"></p>
+            <div class="win-btns">
+              <button id="playAgainBtn" class="ghost">🔄 Play again</button>
+              <button id="winMenuBtn" class="ghost">🏠 Menu</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <aside class="side">
+        <div class="preview-card">
+          <h3>🎯 Target</h3>
+          <img id="targetImg" alt="Target image">
+        </div>
+        <label class="toggle"><input type="checkbox" id="idsToggle"> 🔢 Show magnet IDs</label>
+        <div class="tip">
+          💡 Every touching edge pair shares a number. Drop a piece near its match and it locks in.
+          Locked pieces move together as one group.
+        </div>
+      </aside>
+    </div>
+  </section>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+
+const IMG_SIZE = 800;        // every picture is cropped to a square at this size
+const SNAP_RATIO = 0.4;      // magnet range as a fraction of piece size
+
+const DIRS = [
+  { side: 'right',  dr: 0,  dc: 1,  opp: 'left' },
+  { side: 'left',   dr: 0,  dc: -1, opp: 'right' },
+  { side: 'bottom', dr: 1,  dc: 0,  opp: 'top' },
+  { side: 'top',    dr: -1, dc: 0,  opp: 'bottom' },
+];
+
+let selectedSrc = null;
+let N = 4;
+let game = null;
+let drag = null;
+let zTop = 10;
+let timerId = null;
+let startedAt = 0;
+
+/* ================= ARTWORK (default pictures) ================= */
+function seeded(seed) {
+  let s = seed;
+  return () => (s = (s * 16807) % 2147483647) / 2147483647;
+}
+
+function drawSunset(ctx, s) {
+  const sky = ctx.createLinearGradient(0, 0, 0, s);
+  sky.addColorStop(0, '#ff9a9e');
+  sky.addColorStop(0.5, '#fad0c4');
+  sky.addColorStop(1, '#ffd86f');
+  ctx.fillStyle = sky;
+  ctx.fillRect(0, 0, s, s);
+
+  const sun = ctx.createRadialGradient(s * 0.5, s * 0.55, 10, s * 0.5, s * 0.55, s * 0.22);
+  sun.addColorStop(0, '#fff6b0');
+  sun.addColorStop(1, '#ff7e5f');
+  ctx.fillStyle = sun;
+  ctx.beginPath();
+  ctx.arc(s * 0.5, s * 0.55, s * 0.22, 0, Math.PI * 2);
+  ctx.fill();
+
+  const layers = [['#f67280', 0.62, 0.04], ['#c06c84', 0.72, 0.05], ['#6c5b7b', 0.84, 0.06], ['#355c7d', 0.94, 0.05]];
+  layers.forEach(([color, y, amp], i) => {
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(0, s);
+    for (let x = 0; x <= s; x += 10) {
+      ctx.lineTo(x, s * y + Math.sin((x / s) * (3 + i) * Math.PI + i) * s * amp);
+    }
+    ctx.lineTo(s, s);
+    ctx.closePath();
+    ctx.fill();
+  });
+}
+
+function drawOcean(ctx, s) {
+  const sea = ctx.createLinearGradient(0, 0, 0, s);
+  sea.addColorStop(0, '#4facfe');
+  sea.addColorStop(0.45, '#00f2fe');
+  sea.addColorStop(1, '#0093e9');
+  ctx.fillStyle = sea;
+  ctx.fillRect(0, 0, s, s);
+
+  ctx.fillStyle = 'rgba(255,255,210,0.95)';
+  ctx.beginPath();
+  ctx.arc(s * 0.75, s * 0.2, s * 0.09, 0, Math.PI * 2);
+  ctx.fill();
+
+  const waves = [['#0a6ebd', 0.5], ['#0857a3', 0.62], ['#06407a', 0.76], ['#032c57', 0.88]];
+  waves.forEach(([color, y], i) => {
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(0, s);
+    for (let x = 0; x <= s; x += 8) {
+      ctx.lineTo(x, s * y + Math.sin((x / s) * Math.PI * (4 + i) + i * 1.3) * s * 0.025);
+    }
+    ctx.lineTo(s, s);
+    ctx.closePath();
+    ctx.fill();
+  });
+}
+
+function drawGarden(ctx, s) {
+  const grass = ctx.createLinearGradient(0, 0, 0, s);
+  grass.addColorStop(0, '#a8e063');
+  grass.addColorStop(1, '#56ab2f');
+  ctx.fillStyle = grass;
+  ctx.fillRect(0, 0, s, s);
+
+  ctx.fillStyle = '#ffd32a';
+  ctx.beginPath();
+  ctx.arc(s * 0.85, s * 0.14, s * 0.07, 0, Math.PI * 2);
+  ctx.fill();
+
+  const r = seeded(42);
+  const colors = ['#ff6b6b', '#feca57', '#ff9ff3', '#54a0ff', '#ffffff', '#ff9f43'];
+  for (let i = 0; i < 70; i++) {
+    const x = r() * s;
+    const y = s * 0.35 + r() * s * 0.6;
+    const rad = s * (0.02 + r() * 0.03);
+    const color = colors[i % colors.length];
+
+    ctx.strokeStyle = '#2d6a1f';
+    ctx.lineWidth = s * 0.006;
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(x, y + rad * 3);
+    ctx.stroke();
+
+    ctx.fillStyle = color;
+    for (let k = 0; k < 6; k++) {
+      const a = (k * Math.PI) / 3;
+      ctx.beginPath();
+      ctx.arc(x + Math.cos(a) * rad, y + Math.sin(a) * rad, rad * 0.6, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.fillStyle = '#ffd32a';
+    ctx.beginPath();
+    ctx.arc(x, y, rad * 0.5, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+function makeArt(draw) {
+  const c = document.createElement('canvas');
+  c.width = c.height = IMG_SIZE;
+  draw(c.getContext('2d'), IMG_SIZE);
+  return c.toDataURL('image/jpeg', 0.9);
+}
+
+const ART = [
+  { name: 'Sunset', src: makeArt(drawSunset) },
+  { name: 'Ocean',  src: makeArt(drawOcean) },
+  { name: 'Garden', src: makeArt(drawGarden) },
+];
+
+/* ================= MENU ================= */
+function init() {
+  const thumbs = $('thumbs');
+  ART.forEach((art) => {
+    const d = document.createElement('div');
+    d.className = 'thumb';
+    d.innerHTML = `<img src="${art.src}" alt="${art.name}"><span>${art.name}</span>`;
+    d.addEventListener('click', () => chooseSource(art.src, d));
+    thumbs.appendChild(d);
+  });
+
+  $('sizeSlider').addEventListener('input', (e) => {
+    N = parseInt(e.target.value, 10);
+    $('sizeLabel').textContent = `${N} × ${N}`;
+    updateMenuPreview();
+  });
+
+  $('fileInput').addEventListener('change', handleUpload);
+  $('startBtn').addEventListener('click', startGame);
+  $('restartBtn').addEventListener('click', startGame);
+  $('scatterBtn').addEventListener('click', scatterLoose);
+  $('menuBtn').addEventListener('click', goMenu);
+  $('playAgainBtn').addEventListener('click', startGame);
+  $('winMenuBtn').addEventListener('click', goMenu);
+
+  const peek = $('peekBtn');
+  peek.addEventListener('pointerdown', () => $('board').classList.add('peek'));
+  ['pointerup', 'pointerleave', 'pointercancel'].forEach((ev) =>
+    peek.addEventListener(ev, () => $('board').classList.remove('peek')));
+
+  $('idsToggle').addEventListener('change', (e) =>
+    $('board').classList.toggle('show-ids', e.target.checked));
+
+  window.addEventListener('pointermove', onPointerMove);
+  window.addEventListener('pointerup', onPointerUp);
+  window.addEventListener('pointercancel', onPointerUp);
+
+  chooseSource(ART[0].src, thumbs.firstElementChild);
+}
+
+function chooseSource(src, el) {
+  selectedSrc = src;
+  document.querySelectorAll('.thumb').forEach((t) => t.classList.remove('active'));
+  if (el) el.classList.add('active');
+  $('uploadText').textContent = el ? '📤 Upload your own photo' : '✅ Using your photo';
+  $('startBtn').disabled = false;
+  updateMenuPreview();
+}
+
+function squareCrop(img) {
+  const side = Math.min(img.naturalWidth, img.naturalHeight);
+  const sx = (img.naturalWidth - side) / 2;
+  const sy = (img.naturalHeight - side) / 2;
+  const c = document.createElement('canvas');
+  c.width = c.height = IMG_SIZE;
+  c.getContext('2d').drawImage(img, sx, sy, side, side, 0, 0, IMG_SIZE, IMG_SIZE);
+  return c.toDataURL('image/jpeg', 0.9);
+}
+
+function handleUpload(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    const img = new Image();
+    img.onload = () => chooseSource(squareCrop(img), null);
+    img.src = reader.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function updateMenuPreview() {
+  const frame = $('menuPreview');
+  if (!selectedSrc) return;
+  const p = (100 / N) + '%';
+  frame.style.backgroundImage =
+    'linear-gradient(to right, rgba(255,255,255,.9) 2px, transparent 2px), ' +
+    'linear-gradient(to bottom, rgba(255,255,255,.9) 2px, transparent 2px), ' +
+    `url("${selectedSrc}")`;
+  frame.style.backgroundSize = `${p} 100%, 100% ${p}, cover`;
+  frame.style.backgroundRepeat = 'repeat, repeat, no-repeat';
+  $('menuInfo').textContent = `${N} × ${N} = ${N * N} pieces`;
+}
+
+function show(id) {
+  document.querySelectorAll('.screen').forEach((s) => s.classList.toggle('active', s.id === id));
+}
+
+function goMenu() {
+  stopTimer();
+  game = null;
+  drag = null;
+  show('menu');
+  updateMenuPreview();
+}
+
+/* ================= GAME SETUP ================= */
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+function startGame() {
+  if (!selectedSrc) return;
+  stopTimer();
+  show('game');
+
+  const board = $('board');
+  board.querySelectorAll('.piece').forEach((n) => n.remove());
+  board.classList.remove('peek');
+  const win = $('win');
+  win.classList.add('hidden');
+  win.querySelectorAll('.confetti').forEach((n) => n.remove());
+
+  $('targetImg').src = selectedSrc;
+  board.style.setProperty('--img', `url("${selectedSrc}")`);
+
+  let W = board.clientWidth || 600;
+  const S = Math.floor((W * 0.66) / N);
+
+  // ---- Numbered magnet IDs: every shared edge gets one unique number ----
+  const edgeCount = 2 * N * (N - 1);
+  const pool = shuffle(Array.from({ length: 900 }, (_, i) => 100 + i)).slice(0, edgeCount);
+  let k = 0;
+  const H = [];  // H[r][c]: edge between row r and row r+1 in column c
+  const V = [];  // V[r][c]: edge between column c and column c+1 in row r
+  for (let r = 0; r < N - 1; r++) {
+    H[r] = [];
+    for (let c = 0; c < N; c++) H[r][c] = pool[k++];
+  }
+  for (let r = 0; r < N; r++) {
+    V[r] = [];
+    for (let c = 0; c < N - 1; c++) V[r][c] = pool[k++];
+  }
+
+  // ---- Build pieces; each side holds the ID its neighbour must share ----
+  const grid = [];
+  const pieces = [];
+  for (let r = 0; r < N; r++) {
+    grid[r] = [];
+    for (let c = 0; c < N; c++) {
+      const p = {
+        r, c,
+        sides: {
+          top:    r > 0 ? H[r - 1][c] : null,
+          bottom: r < N - 1 ? H[r][c] : null,
+          left:   c > 0 ? V[r][c - 1] : null,
+          right:  c < N - 1 ? V[r][c] : null,
+        },
+        el: null,
+        group: null,
+      };
+      grid[r][c] = p;
+      pieces.push(p);
+    }
+  }
+
+  game = { N, S, W, grid, pieces, groups: [], moves: 0, solved: false };
+
+  pieces.forEach((p) => {
+    const el = document.createElement('div');
+    el.className = 'piece';
+    el.style.width = S + 'px';
+    el.style.height = S + 'px';
+    el.style.backgroundSize = `${N * S}px ${N * S}px`;
+    el.style.backgroundPosition = `${-p.c * S}px ${-p.r * S}px`;
+    el.innerHTML = ['top', 'right', 'bottom', 'left']
+      .map((side) => p.sides[side] == null ? '' :
+        `<span class="idtag ${side[0]}">${p.sides[side]}</span>`)
+      .join('');
+    el.addEventListener('pointerdown', (e) => onPointerDown(e, p));
+    board.appendChild(el);
+    p.el = el;
+
+    const g = { gx: 0, gy: 0, members: [p] };
+    p.group = g;
+    game.groups.push(g);
+  });
+
+  // ---- Scatter every piece randomly across the empty board ----
+  game.groups.forEach((g) => {
+    const p = g.members[0];
+    const x = Math.random() * (W - S);
+    const y = Math.random() * (W - S);
+    g.gx = x - p.c * S;
+    g.gy = y - p.r * S;
+    placeGroup(g);
+  });
+
+  $('board').classList.toggle('show-ids', $('idsToggle').checked);
+  game.moves = 0;
+  updateStats();
+  startTimer();
+}
+
+function scatterLoose() {
+  if (!game || game.solved) return;
+  const { S, W } = game;
+  game.groups.forEach((g) => {
+    if (g.members.length === 1) {
+      const p = g.members[0];
+      g.gx = Math.random() * (W - S) - p.c * S;
+      g.gy = Math.random() * (W - S) - p.r * S;
+      placeGroup(g);
+    }
+  });
+}
+
+/* ================= POSITION HELPERS ================= */
+function placeGroup(g) {
+  const { S } = game;
+  g.members.forEach((m) => {
+    m.el.style.transform = `translate(${g.gx + m.c * S}px, ${g.gy + m.r * S}px)`;
+  });
+}
+
+function clampGroup(g) {
+  const { S, W } = game;
+  let minC = Infinity, maxC = -Infinity, minR = Infinity, maxR = -Infinity;
+  g.members.forEach((m) => {
+    minC = Math.min(minC, m.c); maxC = Math.max(maxC, m.c);
+    minR = Math.min(minR, m.r); maxR = Math.max(maxR, m.r);
+  });
+  const x0 = g.gx + minC * S, x1 = g.gx + (maxC + 1) * S;
+  const y0 = g.gy + minR * S, y1 = g.gy + (maxR + 1) * S;
+  if (x0 < 0) g.gx -= x0; else if (x1 > W) g.gx -= (x1 - W);
+  if (y0 < 0) g.gy -= y0; else if (y1 > W) g.gy -= (y1 - W);
+}
+
+/* ================= MAGNET LOGIC ================= */
+// Returns every neighbour that shares the same numbered ID and sits within magnet range.
+function findMagnets(g) {
+  const { grid, N, S } = game;
+  const out = [];
+  g.members.forEach((m) => {
+    DIRS.forEach((d) => {
+      const id = m.sides[d.side];
+      if (id == null) return;
+      const nr = m.r + d.dr, nc = m.c + d.dc;
+      if (nr < 0 || nc < 0 || nr >= N || nc >= N) return;
+      const o = grid[nr][nc];
+      if (o.group === g) return;
+      // Validation: the neighbour must carry the exact same ID on the matching side
+      if (o.sides[d.opp] !== id) return;
+      // Validation: its current position must be close to where it belongs
+      const ex = g.gx + m.c * S + d.dc * S;
+      const ey = g.gy + m.r * S + d.dr * S;
+      const ox = o.group.gx + o.c * S;
+      const oy = o.group.gy + o.r * S;
+      const dist = Math.hypot(ox - ex, oy - ey);
+      if (dist < S * SNAP_RATIO) out.push({ m, o, dist });
+    });
+  });
+  return out.sort((a, b) => a.dist - b.dist);
+}
+
+function showMagnets(g) {
+  clearMagnets();
+  findMagnets(g).forEach(({ m, o }) => {
+    m.el.classList.add('magnet');
+    o.el.classList.add('magnet');
+  });
+}
+
+function clearMagnets() {
+  document.querySelectorAll('.magnet').forEach((n) => n.classList.remove('magnet'));
+}
+
+// Locks the other group into alignment with the keeper group and merges them.
+function joinGroups(keep, other) {
+  const moving = other.members.slice();
+  moving.forEach((m) => m.el.classList.add('glide'));
+
+  other.gx = keep.gx;
+  other.gy = keep.gy;
+  moving.forEach((m) => {
+    m.group = keep;
+    keep.members.push(m);
+  });
+  other.members = [];
+  game.groups = game.groups.filter((x) => x !== other);
+
+  placeGroup(keep);
+  keep.members.forEach((m) => m.el.classList.toggle('joined', keep.members.length > 1));
+  setTimeout(() => moving.forEach((m) => m.el.classList.remove('glide')), 280);
+}
+
+/* ================= DRAG & DROP (mouse + touch) ================= */
+function onPointerDown(e, p) {
+  if (!game || game.solved) return;
+  e.preventDefault();
+  const g = p.group;
+  g.members.forEach((m) => { m.el.style.zIndex = ++zTop; });
+  p.el.setPointerCapture(e.pointerId);
+  drag = { g, pid: e.pointerId, sx: e.clientX, sy: e.clientY, ox: g.gx, oy: g.gy, moved: false };
+}
+
+function onPointerMove(e) {
+  if (!drag || e.pointerId !== drag.pid || !game) return;
+  const dx = e.clientX - drag.sx;
+  const dy = e.clientY - drag.sy;
+  if (!drag.moved && Math.hypot(dx, dy) < 4) return;
+  drag.moved = true;
+  drag.g.gx = drag.ox + dx;
+  drag.g.gy = drag.oy + dy;
+  clampGroup(drag.g);
+  placeGroup(drag.g);
+  showMagnets(drag.g);
+}
+
+function onPointerUp(e) {
+  if (!drag || e.pointerId !== drag.pid) return;
+  const { g, moved } = drag;
+  drag = null;
+  clearMagnets();
+  if (!moved || !game) return;
+
+  game.moves++;
+
+  let joinedAny = false;
+  let hits = findMagnets(g);
+  while (hits.length) {
+    joinGroups(g, hits[0].o.group);
+    joinedAny = true;
+    hits = findMagnets(g);
+  }
+
+  clampGroup(g);
+  placeGroup(g);
+
+  if (joinedAny) {
+    g.members.forEach((m) => {
+      m.el.classList.add('snap');
+      setTimeout(() => m.el.classList.remove('snap'), 450);
+    });
+  }
+
+  updateStats();
+  if (game.groups.length === 1) win();
+}
+
+/* ================= STATS, TIMER, WIN ================= */
+function updateStats() {
+  if (!game) return;
+  const largest = game.groups.reduce((mx, g) => Math.max(mx, g.members.length), 0);
+  $('moves').textContent = game.moves;
+  $('connected').textContent = `${largest}/${game.N * game.N}`;
+}
+
+function startTimer() {
+  startedAt = Date.now();
+  tick();
+  timerId = setInterval(tick, 1000);
+}
+
+function tick() {
+  const s = Math.floor((Date.now() - startedAt) / 1000);
+  $('timer').textContent = `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+}
+
+function stopTimer() {
+  clearInterval(timerId);
+  timerId = null;
+}
+
+function win() {
+  game.solved = true;
+  stopTimer();
+  tick();
+  $('winText').textContent = `⏱ ${$('timer').textContent}  ·  🎯 ${game.moves} moves  ·  ${game.N}×${game.N}`;
+
+  const box = $('win');
+  const colors = ['#ffd32a', '#ff6b6b', '#54a0ff', '#ff9ff3', '#1dd1a1'];
+  for (let i = 0; i < 40; i++) {
+    const s = document.createElement('span');
+    s.className = 'confetti';
+    s.style.left = Math.random() * 100 + '%';
+    s.style.background = colors[i % colors.length];
+    s.style.animationDelay = (Math.random() * 1.5) + 's';
+    box.appendChild(s);
+  }
+  box.classList.remove('hidden');
+}
+
+init();
+</script>
 </body>
 </html>
